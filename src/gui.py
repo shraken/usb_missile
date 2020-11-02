@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 '''
     Control USB Missile Launcher using basic GUI.  The GUI allows the
      elevation and azmith angle of the launcher to be set by clicking the
@@ -10,25 +12,52 @@
 from tkinter import *
 import time
 import threading
+import worker as worker
+import queue
 
+q = queue.Queue()
 neutral_color = 'SystemButtonFace'
 active_color = 'snow3'
 button_color = 'lightgray'
 
+def postMsg(status, motor):
+    msg = {
+        'status': status,
+        'motor': motor,
+    }
+    q.put(msg)
+
+# up arrow
 def pressUp(event):
-    print('pressUp')
-    pass
+    return postMsg('go', 'up')
 
 def releaseUp(event):
-    print('releaseUp')
-    pass
+    return postMsg('stop', 'up')
 
-def InfiniteProcess():
-    while not finish:
-        print("Infinite Loop")
-        time.sleep(3)
+# down arrow
+def pressDown(event):
+    return postMsg('go', 'down')
 
-finish = False
+def releaseDown(event):
+    return postMsg('stop', 'down')
+
+# left arrow
+def pressLeft(event):
+    return postMsg('go', 'left')
+
+def releaseLeft(event):
+    return postMsg('stop', 'left')
+
+# right arrow
+def pressRight(event):
+    return postMsg('go', 'right')
+
+def releaseRight(event):
+    return postMsg('stop', 'right')
+
+# fire
+def pressFire(event):
+    return postMsg('go', 'fire')
 
 # GUI definitions
 root = Tk()
@@ -63,20 +92,26 @@ ButtonRow2 = Frame(root, bg=neutral_color)
 ButtonRow2.config(borderwidth=0, relief=FLAT)
 
 ButtonLeft = Button(ButtonRow2, bg=button_color, activebackground=active_color, 
-                    height=150, width=150, command=lambda: buttonPushed(ButtonLeft))
+                    height=150, width=150)
 ButtonLeft.pack(side=LEFT)
+ButtonLeft.bind('<ButtonPress-1>', pressLeft)
+ButtonLeft.bind('<ButtonRelease-1>', releaseLeft)
+
 ButtonLeft.config(image=left_picture)
 
 ButtonFire = Button(ButtonRow2, bg=button_color, activebackground=active_color, 
-                    height=150, width=150, command=lambda: buttonPushed(ButtonFire))
+                    height=150, width=150)
 ButtonFire.pack(side=LEFT)
 ButtonFire.config(image=fire_picture)
+ButtonFire.bind('<ButtonPress-1>', pressFire)
 
 ButtonRight = Button(ButtonRow2, bg=button_color, activebackground=active_color, 
-                     height=150, width=150, command=lambda: buttonPushed(ButtonRight))
+                     height=150, width=150)
 ButtonRight.pack(side=LEFT)
-ButtonRight.config(image=right_picture)
+ButtonRight.bind('<ButtonPress-1>', pressRight)
+ButtonRight.bind('<ButtonRelease-1>', releaseRight)
 
+ButtonRight.config(image=right_picture)
 ButtonRow2.pack(side=TOP, expand=1)
 
 # Row 3
@@ -84,15 +119,18 @@ ButtonRow3 = Frame(root, bg=neutral_color)
 ButtonRow3.config(borderwidth=0, relief=FLAT)
 
 ButtonDown = Button(ButtonRow3, bg=button_color, activebackground=active_color, 
-                    height=150, width=150, command=lambda: buttonPushed(ButtonDown))
+                    height=150, width=150)
 ButtonDown.pack(side=LEFT)
 ButtonDown.config(image=down_picture)
+ButtonDown.bind('<ButtonPress-1>', pressDown)
+ButtonDown.bind('<ButtonRelease-1>', releaseDown)
 
 ButtonRow3.pack(side=TOP, expand=1)
 
-Process = threading.Thread(target=InfiniteProcess)
-Process.start()
+thread = worker.Worker(q)
+thread.start()
 
 root.mainloop()
-finish = True
-Process.join()
+
+thread.running = False
+thread.join()
